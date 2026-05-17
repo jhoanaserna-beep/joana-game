@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentence Building Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #2ecc71;
+            --background-color: #f5f7fa;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Andika', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100vw;
+            height: 100vh;
+            padding: 1vh 1vw;
+            overflow: hidden;
+        }
+
+        header {
+            position: relative;
+            width: 100%;
+            text-align: center;
+            height: 8vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2rem;
+            text-transform: lowercase;
+        }
+
+        p.instructions {
+            font-size: 1rem;
+            color: #666;
+            text-transform: lowercase;
+        }
+
+        #fullscreen-btn {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #34495e;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s, transform 0.1s;
+            text-transform: lowercase;
+            font-family: 'Andika', sans-serif;
+        }
+
+        #fullscreen-btn:hover {
+            background-color: #2c3e50;
+        }
+
+        /* Maximized Game Container Layout */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            height: 90vh;
+            max-width: 1400px;
+            padding-bottom: 1vh;
+        }
+
+        .progress-bar {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #555;
+            text-transform: lowercase;
+            height: 3vh;
+        }
+
+        /* Maximized Image Window */
+        .image-container {
+            height: 48vh; /* Boosted space for a very big photo */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            padding: 15px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            width: 95%;
+            max-width: 1000px;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            object-fit: contain; /* Keeps image sharp and fully visible */
+        }
+
+        .fallback-icon {
+            font-size: 10rem; /* Super sized emojis for visibility */
+        }
+
+        /* Target Slots (Blank Lines) */
+        .slots-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            width: 100%;
+            min-height: 9vh;
+        }
+
+        .slot {
+            width: 125px;
+            height: 60px;
+            border-bottom: 4px solid #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .slot.hovered {
+            border-bottom-color: var(--primary-color);
+            background-color: rgba(74, 144, 226, 0.1);
+        }
+
+        /* Jumbled Words Box */
+        .words-bank {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            width: 95%;
+            min-height: 11vh;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 2px dashed #cbd5e1;
+        }
+
+        .word-card {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 22px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.5rem; /* Large clear lettering for learners */
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-transform: lowercase;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .word-card.dragging {
+            opacity: 0.4;
+        }
+
+        /* Action Buttons styling */
+        .controls {
+            display: flex;
+            gap: 20px;
+            height: 6vh;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 35px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: lowercase;
+            transition: transform 0.2s;
+            font-family: 'Andika', sans-serif;
+        }
+
+        .btn-check {
+            background-color: #f1c40f;
+            color: #333;
+        }
+
+        .btn-next {
+            background-color: var(--success-color);
+            color: white;
+            display: none;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Full Screen Success Overlay */
+        #success-message {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(46, 204, 113, 0.98);
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        #success-message h2 {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            text-transform: lowercase;
+        }
+
+        #success-message p {
+            font-size: 2rem;
+            margin-bottom: 40px;
+            text-transform: lowercase;
+        }
+
+        #reset-btn {
+            background: white;
+            color: var(--success-color);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-transform: lowercase;
+            transition: transform 0.2s;
+            font-family: 'Andika', sans-serif;
+        }
+
+        #reset-btn:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>sentence builder game 🧩</h1>
+        <p class="instructions">drag the jumbled words onto the blank lines to make a correct sentence!</p>
+        <button id="fullscreen-btn" onclick="toggleFullscreen()">view full screen</button>
+    </header>
+
+    <div class="game-container">
+        <div class="progress-bar" id="progressBar">item 1 of 6</div>
+        
+        <div class="image-container" id="imageContainer">
+            </div>
+
+        <div class="slots-container" id="slotsContainer">
+            </div>
+
+        <div class="words-bank" id="wordsBank">
+            </div>
+
+        <div class="controls">
+            <button class="btn btn-check" id="checkBtn" onclick="checkSentence()">check answer</button>
+            <button class="btn btn-next" id="nextBtn" onclick="nextItem()">next sentence</button>
+        </div>
+    </div>
+
+    <div id="success-message">
+        <h2>🎉 amazing job! 🎉</h2>
+        <p>you arranged all the sentences perfectly!</p>
+        <button id="reset-btn" onclick="restartGame()">play again</button>
+    </div>
+
+    <script>
+        const gameItems = [
+            {
+                sentence: ["i", "can", "help", "the", "earth", "by", "saving", "water"],
+                imgUrl: "https://ik.imagekit.io/bdafaeksy/Screenshot%202026-05-17%20132355.png",
+                isFallback: false
+            },
+            {
+                sentence: ["we", "should", "always", "recycle", "plastic", "bottles"],
+                imgUrl: "♻️",
+                isFallback: true
+            },
+            {
+                sentence: ["planting", "green", "trees", "helps", "clean", "the", "air"],
+                imgUrl: "🌳",
+                isFallback: true
+            },
+            {
+                sentence: ["do", "not", "throw", "trash", "on", "the", "ground"],
+                imgUrl: "🚯",
+                isFallback: true
+            },
+            {
+                sentence: ["remember", "to", "turn", "off", "the", "lights"],
+                imgUrl: "💡",
+                isFallback: true
+            },
+            {
+                sentence: ["use", "a", "cloth", "bag", "for", "shopping"],
+                imgUrl: "🛍️",
+                isFallback: true
+            }
+        ];
+
+        let currentItemIndex = 0;
+        let draggedElement = null;
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`error enabling full-screen mode: ${err.message}`);
+                });
+                document.getElementById('fullscreen-btn').innerText = "exit full screen";
+            } else {
+                document.exitFullscreen();
+                document.getElementById('fullscreen-btn').innerText = "view full screen";
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.getElementById('fullscreen-btn').innerText = "view full screen";
+            }
+        });
+
+        function loadItem(index) {
+            const item = gameItems[index];
+            
+            document.getElementById('progressBar').innerText = `item ${index + 1} of ${gameItems.length}`;
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('checkBtn').style.display = 'block';
+
+            const imgContainer = document.getElementById('imageContainer');
+            if(item.isFallback) {
+                imgContainer.innerHTML = `<span class="fallback-icon">${item.imgUrl}</span>`;
+            } else {
+                imgContainer.innerHTML = `<img src="${item.imgUrl}" alt="sentence clue illustration">`;
+            }
+
+            const slotsContainer = document.getElementById('slotsContainer');
+            slotsContainer.innerHTML = '';
+            item.sentence.forEach((word, i) => {
+                const slot = document.createElement('div');
+                slot.classList.add('slot');
+                slot.setAttribute('data-index', i);
+                
+                slot.addEventListener('dragover', (e) => e.preventDefault());
+                slot.addEventListener('dragenter', () => slot.classList.add('hovered'));
+                slot.addEventListener('dragleave', () => slot.classList.remove('hovered'));
+                slot.addEventListener('drop', () => handleDrop(slot));
+
+                slotsContainer.appendChild(slot);
+            });
+
+            const wordsBank = document.getElementById('wordsBank');
+            wordsBank.innerHTML = '';
+            
+            wordsBank.addEventListener('dragover', (e) => e.preventDefault());
+            wordsBank.addEventListener('drop', () => {
+                if (draggedElement) {
+                    wordsBank.appendChild(draggedElement);
+                    draggedElement.style.position = "static";
+                }
+            });
+
+            const shuffledWords = [...item.sentence].sort(() => Math.random() - 0.5);
+            shuffledWords.forEach((word) => {
+                const wordCard = document.createElement('div');
+                wordCard.classList.add('word-card');
+                wordCard.setAttribute('draggable', 'true');
+                wordCard.innerText = word.toLowerCase();
+
+                wordCard.addEventListener('dragstart', () => {
+                    draggedElement = wordCard;
+                    wordCard.classList.add('dragging');
+                });
+                wordCard.addEventListener('dragend', () => {
+                    draggedElement = null;
+                    wordCard.classList.remove('dragging');
+                });
+
+                wordsBank.appendChild(wordCard);
+            });
+        }
+
+        function handleDrop(slot) {
+            slot.classList.remove('hovered');
+            if (draggedElement) {
+                if (slot.children.length > 0) {
+                    document.getElementById('wordsBank').appendChild(slot.children[0]);
+                }
+                slot.appendChild(draggedElement);
+            }
+        }
+
+        function checkSentence() {
+            const slots = document.querySelectorAll('.slot');
+            const expectedSentence = gameItems[currentItemIndex].sentence;
+            let correctCount = 0;
+
+            slots.forEach((slot, index) => {
+                if (slot.children.length > 0) {
+                    const placedWord = slot.children[0].innerText.toLowerCase();
+                    const targetWord = expectedSentence[index].toLowerCase();
+
+                    if (placedWord === targetWord) {
+                        slot.style.borderBottomColor = 'var(--success-color)';
+                        correctCount++;
+                    } else {
+                        slot.style.borderBottomColor = '#e74c3c';
+                    }
+                } else {
+                    slot.style.borderBottomColor = '#e74c3c';
+                }
+            });
+
+            if (correctCount === expectedSentence.length) {
+                document.getElementById('checkBtn').style.display = 'none';
+                document.getElementById('nextBtn').style.display = 'block';
+                
+                const cards = document.querySelectorAll('.word-card');
+                cards.forEach(card => card.setAttribute('draggable', 'false'));
+            }
+        }
+
+        function nextItem() {
+            currentItemIndex++;
+            if (currentItemIndex < gameItems.length) {
+                loadItem(currentItemIndex);
+            } else {
+                document.getElementById('success-message').style.display = 'flex';
+            }
+        }
+
+        function restartGame() {
+            currentItemIndex = 0;
+            document.getElementById('success-message').style.display = 'none';
+            loadItem(currentItemIndex);
+        }
+
+        loadItem(currentItemIndex);
+    </script>
+</body>
+</html>
